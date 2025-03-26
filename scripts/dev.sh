@@ -22,4 +22,4 @@ trap cleanup EXIT
 
 # Watch for file changes and rebuild
 echo "Starting file watcher..."
-pnpm dlx nodemon --watch src --watch README.md --ext md,sh,html --exec "$ROOT_DIR/scripts/build.sh"
+pnpm dlx nodemon --watch src --watch README.md --ext md,sh,html --exec "$ROOT_DIR/scripts/docs.sh"
