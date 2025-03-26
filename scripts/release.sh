@@ -1,8 +1,15 @@
 #! /bin/bash
 
 ROOT_DIR="$(dirname "$(dirname "$0")")"
-# read version from src/unruntime.sh
-VERSION=$(grep -oP 'UNRUNTIME_VERSION=\K[^ ]+' "$ROOT_DIR/src/unruntime.sh")
+# read version from unruntime.sh
+VERSION=$(grep -oP 'UNRUNTIME_VERSION=\K[^ ]+' "$ROOT_DIR/unruntime.sh")
+UNRUNTIME_PATH="$ROOT_DIR/unruntime.sh"
+
+# Check if version was found
+if [ -z "$VERSION" ]; then
+  echo "Error: Could not find UNRUNTIME_VERSION in $UNRUNTIME_PATH"
+  exit 1
+fi
 
 # Parse command line arguments
 NO_BUMP=false
@@ -43,6 +50,14 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
+# Handle script interruption
+cleanup() {
+  echo -e "\nScript interrupted. Reverting changes..."
+  revert_changes
+  exit 1
+}
+trap cleanup INT TERM
+
 # Function to bump version
 bump_version() {
   local version=$1
@@ -70,7 +85,7 @@ bump_version() {
 # Function to update version in unruntime.sh
 update_version() {
   local new_version=$1
-  sed -i "s/UNRUNTIME_VERSION=.*/UNRUNTIME_VERSION=$new_version/" "$ROOT_DIR/src/unruntime.sh"
+  sed -i "s/UNRUNTIME_VERSION=.*/UNRUNTIME_VERSION=$new_version/" "$UNRUNTIME_PATH"
 }
 
 # Function to create release notes
@@ -80,7 +95,13 @@ create_release_notes() {
 
   # Get commits between versions
   local commits
-  commits=$(git log --pretty=format:"- %s" "$prev_version..HEAD")
+  if git rev-parse "$prev_version" >/dev/null 2>&1; then
+    # If previous version exists, get commits since then
+    commits=$(git log --pretty=format:"- %s" "$prev_version..HEAD")
+  else
+    # If this is the first release, get all commits
+    commits=$(git log --pretty=format:"- %s")
+  fi
 
   # Create release notes
   cat <<EOF
@@ -120,18 +141,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 EOF
   fi
 
-  # Insert new release notes after the Unreleased section
-  sed -i "/^## \[Unreleased\]/a\\\n$release_notes" "$changelog_file"
+  # Extract the Changes section from release notes
+  local changes
+  changes=$(echo "$release_notes" | sed -n '/^## Changes/,/^##/p' | sed '1d;$d')
+
+  # Format the new version section
+  local version_section
+  version_section="## [v$new_version] - $(date +%Y-%m-%d)\n\n### Changed\n$changes\n"
+
+  # Insert new version section after the Unreleased section
+  sed -i "/^## \[Unreleased\]/a\\\n$version_section" "$changelog_file"
 }
 
 # Function to revert all changes
 revert_changes() {
   echo "Reverting all changes..."
-  # Remove the tag we just created
-  git tag -d "v$new_version"
-  # Reset to the commit before we started
-  git reset --hard HEAD~1
-  echo "All changes have been reverted."
+
+  # Get the commit hash from before we started the release
+  local start_point
+  start_point=$(git rev-list -n 1 "HEAD~$(git rev-list --count HEAD...origin/main)")
+
+  # Hard reset to that point
+  git reset --hard "$start_point"
+
+  # Clean up any untracked files (like CHANGELOG.md if it was just created)
+  git clean -f
+
+  echo "All changes have been reverted to state before release."
 }
 
 # Main release process
@@ -179,7 +215,7 @@ main() {
     git add "$ROOT_DIR/CHANGELOG.md"
     git commit -m "chore: update changelog for v$new_version"
   else
-    git add "$ROOT_DIR/src/unruntime.sh" "$ROOT_DIR/CHANGELOG.md"
+    git add "$UNRUNTIME_PATH" "$ROOT_DIR/CHANGELOG.md"
     git commit -m "chore: bump version to v$new_version"
   fi
 
@@ -189,7 +225,7 @@ main() {
   # Show changes before pushing
   echo "The following changes will be pushed:"
   echo "----------------------------------------"
-  git diff --cached
+  git diff --cached | cat # Use cat to prevent pager
   echo "----------------------------------------"
   echo "CHANGELOG.md has been updated with:"
   echo "----------------------------------------"
