@@ -3,7 +3,7 @@
 
 # settings
 UNRUNTIME_VERSION=1.0.0
-UNRUNTIME_URL=https://raw.githubusercontent.com/jasenmichael/unruntime/refs/heads/main/unruntime.sh
+UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
 
 NVM_INSTALL_URL=https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/nvm.sh
