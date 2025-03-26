@@ -7,11 +7,14 @@
     <style>
       body { 
         padding: 20px;
-        font-size: 18px; /* Increased base font size */
+        font-size: 18px;
         background-color: #121212;
         color: #e0e0e0;
         max-width: 1200px;
         margin: 0 auto;
+        padding: 0 40px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
       }
       .runtime-tools {
          display: flex; 
@@ -63,20 +66,28 @@
       }
 
       pre {
-        display: flex;
-        align-items: center;
-        min-height: 32px;
-        background-color: #282626;
+        display: block;
+        background-color: #1e1e1e;
         border-radius: 8px;
         color: #e0e0e0;
-        padding: 8px;
+        padding: 0px 0px 20px 0px;
+        margin: 0 -5px;
+        overflow-x: auto;
+        font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      code {
+        font-family: inherit;
+        color: inherit;
       }
 
       pre > code {
-        /* padding: 2px; */
+        display: block;
+        padding: 0;
       }
 
-  
       /* Dark mode for horizontal rules */
       hr {
         border-color: #333;

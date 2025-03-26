@@ -18,6 +18,7 @@ pandoc -f markdown \
   -t html "$MD" \
   --metadata title="$TITLE" \
   --template="$TEMPLATE" \
+  --highlight-style=tango \
   -o "$OUTPUT_DIR/index.html" &&
   echo "Build successful" ||
   echo "Build failed"
