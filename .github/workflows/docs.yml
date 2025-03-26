@@ -1,0 +1,42 @@
+name: Build and Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl pandoc
+
+      - name: Build documentation
+        run: |
+          ./scripts/docs.sh
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "./docs" ]; then
+            echo "Error: docs directory not found after build"
+            exit 1
+          fi
+          if [ ! -f "./docs/index.html" ]; then
+            echo "Error: index.html not found in docs directory"
+            exit 1
+          fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          commit_message: "docs: update documentation"
