@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=0.1.24
+UNRUNTIME_VERSION=0.1.25
 UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
 UNRUNTIME_PATH="$UNRUNTIME_DIR/unruntime.sh"
@@ -19,9 +19,9 @@ set -E
 
 USAGE_TEXT=$(
   cat <<EOF
-  Usage: $(basename "$0") [option]
+  Usage: unruntime [option]
          or
-         $(basename "$0") [package1 package2 ...]
+         unruntime [package1 package2 ...]
   
   Options:
     -h, --help     Show this help message
@@ -36,10 +36,10 @@ USAGE_TEXT=$(
     deno     Install deno via curl or wget $DENO_INSTALL_URL
   
   Examples:
-    $(basename "$0")             # Interactive mode, prompt for each package
-    $(basename "$0") -a          # Install all packages
-    $(basename "$0") pnpm yarn   # Install specific packages
-    $(basename "$0") -n          # Install only nvm, node, and npm
+    unruntime             # Interactive mode, prompt for each package
+    unruntime -a          # Install all packages
+    unruntime pnpm yarn   # Install specific packages
+    unruntime -n          # Install only nvm, node, and npm
   
   Note: 
     - nvm, node, and npm are always installed/updated first
@@ -134,8 +134,6 @@ get_nvm_latest_version() {
   wgurl https://raw.githubusercontent.com/nvm-sh/nvm/master/package.json | grep '"version":' | cut -d'"' -f4
 
 }
-NVM_LATEST_VERSION=$(get_nvm_latest_version)
-PACKAGES_INSTALLED=()
 
 # helper functions
 unruntime_is_installed() {
@@ -230,14 +228,15 @@ print_report() {
     for package in "${PACKAGES_INSTALLED[@]}"; do
       case "$package" in
       deno) v=$("$package" -v) ;;
+      unruntime) v=${UNRUNTIME_VERSION} ;;
       *) v=$("$package" --version) ;;
       esac
       # v=$(echo "$v" | sed 's/deno //' | sed 's/^v//' | sed 's/ (.*//')
       v=$(echo "$v" | sed 's/deno //' | sed 's/^v//' | sed 's/ //')
-      if [ "$package" = "corepack" ]; then
-        echo -e "  $package:\t $v"
-      else
+      if [ "$package" = "corepack" ] || [ "$package" = "unruntime" ]; then
         echo -e "  $package:\t\t $v"
+      else
+        echo -e "  $package:\t\t\t $v"
       fi
     done
     echo ""
@@ -291,6 +290,7 @@ EOF
   UNRUNTIME_DIR="$HOME/.unruntime"
   chmod +x "$UNRUNTIME_DIR/unruntime.sh"
   echo -e "Unruntime installed! v$UNRUNTIME_VERSION"
+  PACKAGES_INSTALLED+=("unruntime")
 }
 
 update_unruntime() {
@@ -311,6 +311,7 @@ update_unruntime() {
     fi
   else
     echo -e "Unruntime is up to date! v$UNRUNTIME_VERSION\n"
+    PACKAGES_INSTALLED+=("unruntime")
     return 0
   fi
 }
@@ -543,7 +544,7 @@ install_deno() {
 
 install_nypm() {
   echo "####### Installing nypm..."
-  if ! pnpm add -g nypm || npm install --global nypm; then
+  if ! pnpm add -g nypm && ! npm install --global nypm; then
     echo "Failed to install nypm"
     return 1
   fi
@@ -551,86 +552,86 @@ install_nypm() {
 }
 
 # main
-main() {
-  # check if curl or wget is available
-  echo "### Installing/updating unruntime"
-  if ! wgurl --check; then
-    echo "curl or wget not found, please install one of them"
-    exit 1
-  fi
+# check if curl or wget is available
+echo "### Installing/updating unruntime"
+if ! wgurl --check; then
+  echo "curl or wget not found, please install one of them"
+  exit 1
+fi
 
-  # Always install/update unruntime
-  if unruntime_is_installed; then
-    echo "Unruntime installed, checking for updates..."
-    update_unruntime "$@"
-  else
-    echo "Unruntime not installed, installing..."
-    install_unruntime
-  fi
+PACKAGES_INSTALLED=()
 
-  # Always install/update nvm, node, and npm first
-  install_nvm_node
-  install_nvm_node_exit_code=$?
+# Always install/update unruntime
+if unruntime_is_installed; then
+  echo "Unruntime installed, checking for updates..."
+  update_unruntime "$@"
+else
+  echo "Unruntime not installed, installing..."
+  install_unruntime
+fi
 
-  if [ "$1" = "-n" ] || [ "$1" = "--none" ]; then
-    echo "Installed/updated"
-    echo "  unruntime: $($UNRUNTIME_PATH -V)"
-    echo "  nvm: $(nvm -v)"
-    echo "  node: $(node -v)"
-    echo "  npm: $(npm -v)"
+# Always install/update nvm, node, and npm first
+NVM_LATEST_VERSION=$(get_nvm_latest_version)
+install_nvm_node
+install_nvm_node_exit_code=$?
+
+if [ "$1" = "-n" ] || [ "$1" = "--none" ]; then
+  echo -e "\nInstalled/updated"
+  echo "  unruntime:    $($UNRUNTIME_PATH -V)"
+  echo "  nvm:          $(nvm -v)"
+  echo "  node:         $(node -v)"
+  echo "  npm:          $(npm -v)"
+  echo ""
+  exit $install_nvm_node_exit_code
+fi
+
+# Define available packages
+declare -A packages=(
+  [pnpm]=install_pnpm
+  [yarn]=install_yarn
+  [bun]=install_bun
+  [deno]=install_deno
+  [nypm]=install_nypm
+)
+package_order=("${VALID_PACKAGES[@]}")
+
+skip_report=false
+error_occurred=false
+
+# Install based on arguments
+# -a | --all | all - install all packages.
+# <pkg>            - install specified package. EXAMPLE: <script>.sh pnpm
+# <pkg1> <pkg2>    - install specified packages. EXAMPLE: <script>.sh pnpm yarn
+# no args          - prompt for each package
+if [ "$1" = "-a" ] || [ "$1" = "--all" ] || [ "$1" = "all" ]; then
+  # install all packages
+  for package in "${package_order[@]}"; do
     echo ""
-    exit $install_nvm_node_exit_code
-  fi
-
-  # Define available packages
-  declare -A packages=(
-    [pnpm]=install_pnpm
-    [yarn]=install_yarn
-    [bun]=install_bun
-    [deno]=install_deno
-    [nypm]=install_nypm
-  )
-  package_order=("${VALID_PACKAGES[@]}")
-
-  skip_report=false
-  error_occurred=false
-
-  # Install based on arguments
-  # -a | --all | all - install all packages.
-  # <pkg>            - install specified package. EXAMPLE: <script>.sh pnpm
-  # <pkg1> <pkg2>    - install specified packages. EXAMPLE: <script>.sh pnpm yarn
-  # no args          - prompt for each package
-  if [ "$1" = "-a" ] || [ "$1" = "--all" ] || [ "$1" = "all" ]; then
-    # install all packages
-    for package in "${package_order[@]}"; do
-      echo ""
+    ${packages[$package]}
+  done
+elif [ $# -eq 0 ]; then
+  # prompt for each package
+  for package in "${package_order[@]}"; do
+    if prompt_install "$package"; then
       ${packages[$package]}
-    done
-  elif [ $# -eq 0 ]; then
-    # prompt for each package
-    for package in "${package_order[@]}"; do
-      if prompt_install "$package"; then
-        ${packages[$package]}
-      else
-        echo "Skipping $package"
-      fi
-    done
-  else
-    # validate all in $@ are valid packages
-    for package in "$@"; do
-      if [ ! "${packages[$package]+isset}" ]; then
-        echo "Unknown package: $package" >&2
-        echo "Use -h or --help to see available packages" >&2
-        on_error ${LINENO} 1
-      fi
-    done
+    else
+      echo "Skipping $package"
+    fi
+  done
+else
+  # validate all in $@ are valid packages
+  for package in "$@"; do
+    if [ ! "${packages[$package]+isset}" ]; then
+      echo "Unknown package: $package" >&2
+      echo "Use -h or --help to see available packages" >&2
+      on_error ${LINENO} 1
+    fi
+  done
 
-    # install specified packages
-    for package in "$@"; do
-      ${packages[$package]}
-    done
-  fi
-}
+  # install specified packages
+  for package in "$@"; do
+    ${packages[$package]}
+  done
+fi
 
-main "$@"
 #

@@ -3,6 +3,10 @@ name: Build and Deploy Documentation
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "README.md"
+      - "scripts/docs.sh"
   workflow_dispatch:
 
 permissions:
