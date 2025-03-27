@@ -270,8 +270,9 @@ init_changelog() {
 
 update_changelog() {
   # Get the last release tag
-  last_release=$(git describe --tags --abbrev=0 2>/dev/null)
+  last_release=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
 
+  # remove the v from the version
   release_notes=$(get_release_notes "$VERSION" "$last_release")
 
   echo "-------------------"
