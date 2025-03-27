@@ -1,79 +1,47 @@
 #! /bin/bash
 
+# set -e
+
 # backup the release script
 SCRIPT_PATH="$0"
-mkdir -p .git/.bak
-cp "$SCRIPT_PATH" ".git/.bak/release.sh"
+ROOT_DIR="$(dirname "$(dirname "$0")")"
+UNRUNTIME_PATH="$ROOT_DIR/unruntime.sh"
+CHANGELOG_PATH="$ROOT_DIR/CHANGELOG.md"
+REPO_URL="https://github.com/jasenmichael/unruntime"
 
-# Handle script interruption
+# Error handling and cleanup functions
 cleanup() {
   echo -e "\nScript interrupted. Reverting changes..."
   revert_changes
   exit 1
 }
-trap cleanup INT TERM
 
-# restore the release script
-trap 'mv ".git/.bak/release.sh" "$SCRIPT_PATH" > /dev/null 2>&1' EXIT
+revert_changes() {
+  echo "Reverting all changes..."
 
-ROOT_DIR="$(dirname "$(dirname "$0")")"
-# read version from unruntime.sh
-UNRUNTIME_PATH="$ROOT_DIR/unruntime.sh"
-VERSION=$(grep -oP 'UNRUNTIME_VERSION=\K[0-9]+\.[0-9]+\.[0-9]+' "$UNRUNTIME_PATH")
+  # Get the commit hash from before we started the release
+  local start_point
+  start_point=$(git rev-list -n 1 "HEAD~$(git rev-list --count HEAD...origin/main)")
 
-# check for git command
-if ! command -v git &>/dev/null; then
-  echo "git could not be found"
-  exit 1
-fi
+  # Hard reset to that point
+  git reset --hard "$start_point"
 
-# check if we're on main branch
-CURRENT_BRANCH=$(git branch --show-current)
-if [ "$CURRENT_BRANCH" != "main" ]; then
-  echo "Please switch to main branch before releasing"
-  exit 1
-fi
+  # Clean up any untracked files (like CHANGELOG.md if it was just created)
+  git clean -f
+  mv ".git/.bak/release.sh" "$SCRIPT_PATH" >/dev/null 2>&1
 
-# Pull latest changes from remote
-echo "Pulling latest changes from remote..."
-if ! git pull origin main; then
-  echo "Failed to pull from remote. Please resolve any conflicts and try again."
-  exit 1
-fi
+  echo "All changes have been reverted to state before release."
+}
 
-# check if working directory is clean
-if git status --porcelain | grep -v '^ M scripts/release.sh$' | grep -q .; then
-  echo "Working directory is not clean. Please commit or stash changes first."
-  exit 1
-fi
+# Helper functions
+get_version() {
+  grep -oP 'UNRUNTIME_VERSION=\K[0-9]+\.[0-9]+\.[0-9]+' "$UNRUNTIME_PATH" | tr -d ' \r'
+}
 
-# Check if version was found
-if [ -z "$VERSION" ]; then
-  echo "Error: Could not find UNRUNTIME_VERSION in $UNRUNTIME_PATH"
-  exit 1
-fi
-
-# Parse command line arguments
-NO_BUMP=false
-while [[ $# -gt 0 ]]; do
-  case $1 in
-  --no-bump)
-    NO_BUMP=true
-    shift
-    ;;
-  *)
-    echo "Unknown option: $1"
-    exit 1
-    ;;
-  esac
-done
-
-# Function to bump version
 bump_version() {
-  local version=$1
-  local type=$2
+  local type=$1
   local major minor patch
-  IFS='.' read -r major minor patch <<<"$version"
+  IFS='.' read -r major minor patch <<<"$VERSION"
 
   case $type in
   major)
@@ -92,160 +60,276 @@ bump_version() {
   esac
 }
 
-# Function to update version in unruntime.sh
-update_version() {
-  local new_version=$1
-  sed -i "s/UNRUNTIME_VERSION=.*/UNRUNTIME_VERSION=$new_version/" "$UNRUNTIME_PATH"
+update_unruntime_version() {
+  sed -i "s/UNRUNTIME_VERSION=.*/UNRUNTIME_VERSION=$VERSION/" "$UNRUNTIME_PATH"
 }
 
-# Function to create release notes
-create_release_notes() {
+get_bump_version() {
+  local bump_type="patch" # default to patch
+
+  # Get commits since last tag
+  local commits
+  if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+    commits=$(git log --format='%s' "$(git describe --tags --abbrev=0)..HEAD")
+  else
+    commits=$(git log --format='%s')
+  fi
+
+  # Check for breaking changes (feat! or feature!)
+  if echo "$commits" | grep -qE "^(feat!|feature!):"; then
+    bump_type="major"
+  # Check for new features (feat or feature)
+  elif echo "$commits" | grep -qE "^(feat|feature):"; then
+    bump_type="minor"
+  fi
+
+  # Return the new version
+  bump_version "$bump_type"
+}
+
+get_release_notes() {
   local version=$1
   local prev_version=$2
 
-  # Get commits between versions, only the subject line
+  # Get commits between versions, including both subject line and hash
   local commits
   if git rev-parse "$prev_version" >/dev/null 2>&1; then
-    commits=$(git log --format='%s' "$prev_version..HEAD" | sed 's/\$([^)]*)//g' | sed 's/"//g')
+    commits=$(git log --format='%s|%h' "$prev_version..HEAD" | sed 's/\$([^)]*)//g' | sed 's/"//g')
   else
-    commits=$(git log --format='%s' | sed 's/\$([^)]*)//g' | sed 's/"//g')
+    commits=$(git log --format='%s|%h' | sed 's/\$([^)]*)//g' | sed 's/"//g')
   fi
 
-  # Write directly to file to avoid shell interpolation
+  # Format the release notes
   {
-    echo "# Changelog"
-    echo
     echo "## v${version}"
     echo
-    echo "$commits" | while IFS= read -r msg; do
-      type=$(echo "$msg" | sed -n 's/^\([^:]*\):.*/\1/p')
-      message=$(echo "$msg" | sed 's/^[^:]*: *//')
+    # if not the first release, add compare link
+    if [ ! -f "$CHANGELOG_PATH" ] && [ -z "$(git tag -l)" ]; then
+      echo "[compare changes](${REPO_URL}/compare/v${prev_version:-0.0.0}...v${version})"
+      echo
+    fi
+    # set types and messages
+    declare -A type_messages
+    while IFS='|' read -r msg hash; do
+      type=${msg//:*/}
+      message=${msg//*: /}
       [ -z "$type" ] || [ -z "$message" ] && continue
-      echo "### $type"
-      echo "- $message"
+      type_messages["$type"]+="- $message ([$hash](${REPO_URL}/commit/$hash))"$'\n'
+    done <<<"$commits"
+
+    # Map types to their styled names and emojis
+    declare -A type_styles=(
+      ["docs"]="### 📖 Documentation"
+      ["feat"]="### 🚀 Enhancements"
+      ["feature"]="### 🚀 Enhancements"
+      ["chore"]="### 🏡 Chore"
+      ["fix"]="### 🐛 Bug Fixes"
+      ["refactor"]="### 🔄 Refactor"
+      ["ci"]="### 🤖 CI"
+      ["test"]="### 🧪 Tests"
+      ["perf"]="### 📈 Performance"
+      ["style"]="### 🎨 Style"
+    )
+
+    # Then output each type and its messages
+    for type in "${!type_messages[@]}"; do
+      style="${type_styles[$type]:-### $type}"
+      echo "$style"
+      echo -n "${type_messages[$type]}"
+      echo
     done
-  } >"$ROOT_DIR/CHANGELOG.md"
+  }
 }
 
-# Function to update changelog
-update_changelog() {
-  local new_version=$1
-  create_release_notes "$new_version" "v$VERSION"
+# Main execution flow functions
+ensure_git_installed() {
+  # check for git command
+  if ! command -v git &>/dev/null; then
+    echo "git could not be found"
+    exit 1
+  fi
 }
 
-# Function to revert all changes
-revert_changes() {
-  echo "Reverting all changes..."
-
-  # Get the commit hash from before we started the release
-  local start_point
-  start_point=$(git rev-list -n 1 "HEAD~$(git rev-list --count HEAD...origin/main)")
-
-  # Hard reset to that point
-  git reset --hard "$start_point"
-
-  # Clean up any untracked files (like CHANGELOG.md if it was just created)
-  git clean -f
-  mv ".git/.bak/release.sh" "$SCRIPT_PATH"
-
-  echo "All changes have been reverted to state before release."
+ensure_on_main_branch() {
+  # check if we're on main branch
+  CURRENT_BRANCH=$(git branch --show-current)
+  if [ "$CURRENT_BRANCH" != "main" ]; then
+    echo "Please switch to main branch before releasing"
+    exit 1
+  fi
 }
 
-# Main release process
-main() {
+ensure_pulled_latest_changes() {
+  # Pull latest changes from remote
+  if ! git pull origin main >/dev/null 2>&1; then
+    echo "Failed to pull from remote. Please resolve any conflicts and try again."
+    exit 1
+  fi
+}
+
+ensure_working_directory_is_clean() {
+  mkdir -p .git/.bak
+  cp "$SCRIPT_PATH" ".git/.bak/release.sh"
+
+  # check if working directory is clean
+  if git status --porcelain | grep -v '^ M scripts/release.sh$' | grep -q .; then
+    echo "Working directory is not clean. Please commit or stash changes first."
+    exit 1
+  fi
+}
+
+ensure_code_formatted() {
+  if ! "$ROOT_DIR/scripts/fmt.sh" "$ROOT_DIR" >/dev/null 2>&1; then
+    echo "Failed to format code"
+    exit 1
+  else
+    if git status --porcelain | grep -v '^ M scripts/release.sh$' | grep -q .; then
+      echo "Format and commit changes before releasing"
+      exit 1
+    fi
+  fi
+}
+
+ensure_version_set() {
+  # Check if version was found
+  if [ -z "$VERSION" ]; then
+    echo "Error: Could not find UNRUNTIME_VERSION in $UNRUNTIME_PATH"
+    exit 1
+  fi
+}
+
+parse_args() {
+  # Parse command line arguments
+  NO_BUMP=false
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+    --no-bump)
+      NO_BUMP=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+    esac
+  done
+}
+
+set_release_version() {
   # Get current version
   echo "Current version: $VERSION"
+  suggested_release_version=$(get_bump_version)
+  echo "Suggested version: $suggested_release_version"
 
   if [ "$NO_BUMP" = true ]; then
-    echo "Using current version (no bump)"
-    release_version=$VERSION
-    echo "---"
+    echo "Using current version ($VERSION) (no bump)"
   else
-    echo "Select version bump type:"
+    echo "Press enter to accept suggested version"
+    echo "Or select version bump type:"
     echo "1) Major (X.0.0)"
     echo "2) Minor (0.X.0)"
     echo "3) Patch (0.0.X)"
     read -r choice
 
     case $choice in
-    1) release_version=$(bump_version "$VERSION" "major") ;;
-    2) release_version=$(bump_version "$VERSION" "minor") ;;
-    3) release_version=$(bump_version "$VERSION" "patch") ;;
+    1) VERSION=$(bump_version "major") ;;
+    2) VERSION=$(bump_version "minor") ;;
+    3) VERSION=$(bump_version "patch") ;;
     *)
-      echo "Invalid choice"
-      exit 1
+      if [ -z "$choice" ]; then
+        VERSION=$(get_bump_version)
+      else
+        echo "Invalid choice: $choice"
+        exit 1
+      fi
       ;;
     esac
 
-    echo "New version will be: v$release_version"
+    echo "New version will be: v$VERSION"
     read -r -p "Continue? (y/n): " confirm
     if [ "$confirm" != "y" ]; then
       echo "Release cancelled"
       exit 0
     fi
 
-    # Update version in unruntime.sh
-    update_version "$release_version"
+    echo "---"
+
+    update_unruntime_version
+    # TODO: update readme version
   fi
+}
 
-  # ====================
-  # ====================
-  # ====================
-  # ====================
-  # ====================
-  echo "release_version: $release_version"
-  echo "version: $VERSION"
-  updated_version=$(grep -oP 'UNRUNTIME_VERSION=\K[0-9]+\.[0-9]+\.[0-9]+' "$UNRUNTIME_PATH")
-  echo "updated_version: $updated_version"
-  # sleep 10
-  # revert_changes
-  # exit 0
-  # ====================
-  # ====================
-  # ====================
-  # ====================
-  # ====================
-
-  # Now make the changes
-  if [ "$NO_BUMP" = false ]; then
-    update_version "$release_version"
+init_changelog() {
+  if [ ! -f "$CHANGELOG_PATH" ]; then
+    echo "# Changelog" >"$CHANGELOG_PATH"
   fi
-  update_changelog "$release_version"
+}
 
-  sleep 10
-  revert_changes
-  exit 0
+update_changelog() {
+  # Get the last release tag
+  last_release=$(git describe --tags --abbrev=0 2>/dev/null)
 
-  # Show changes before committing
-  # echo "The following changes will be committed:"
-  # echo "----------------------------------------"
-  # git diff | cat # Use cat to prevent pager
-  # echo "----------------------------------------"
+  release_notes=$(get_release_notes "$VERSION" "$last_release")
 
+  echo "-------------------"
+  echo "**Changelog Release Notes**"
+  echo "$release_notes"
+  echo "-------------------"
+  # replace the first line of $CHANGELOG_PATH with '# Changelog\n\n$release_notes'
+  sed -i "1c\\# Changelog\n\n${release_notes//$'\n'/\\n}" "$CHANGELOG_PATH"
+}
+
+confirm_release() {
   read -r -p "Review the changes above. Commit and push to GitHub? (y/n): " push_confirm
   if [ "$push_confirm" != "y" ]; then
     echo "Release cancelled. Reverting all changes..."
     revert_changes
     exit 0
   fi
-
-  # Commit changes
-  if [ "$NO_BUMP" = true ]; then
-    git add "$ROOT_DIR/CHANGELOG.md"
-    git commit -m "chore: update changelog for v${release_version}"
-  else
-    git add "$UNRUNTIME_PATH" "$ROOT_DIR/CHANGELOG.md"
-    git commit -m "chore: bump version to v${release_version}"
-  fi
-
-  # Create git tag
-  git tag -a "v$release_version" -m "Release v$release_version"
-
-  # Push changes and tag
-  git push origin main
-  git push origin "v$release_version"
-
-  echo "Release v$release_version completed successfully!"
 }
 
-main
+commit_changes() {
+  local message=$1
+  if [ "$NO_BUMP" = true ]; then
+    git add "$ROOT_DIR/CHANGELOG.md"
+  else
+    git add "$UNRUNTIME_PATH" "$ROOT_DIR/CHANGELOG.md" "$ROOT_DIR/README.md"
+  fi
+  git commit -m "$message"
+}
+
+create_tag() {
+  git tag -a "v$VERSION" -m "$1"
+}
+
+push_changes() {
+  # Push changes and tag
+  git push origin main
+  git push origin "v$VERSION"
+}
+
+# Main execution
+trap cleanup INT TERM
+trap 'mv ".git/.bak/release.sh" "$SCRIPT_PATH" >/dev/null 2>&1' EXIT
+
+ensure_git_installed
+ensure_on_main_branch
+ensure_pulled_latest_changes
+ensure_working_directory_is_clean
+ensure_code_formatted
+
+VERSION=$(get_version)
+ensure_version_set
+
+parse_args "$@"
+set_release_version
+
+init_changelog # create changelog if it doesn't exist
+update_changelog
+confirm_release
+
+commit_changes "Release v$VERSION"
+create_tag "Release v$VERSION"
+push_changes
+
+echo "Release v$VERSION completed successfully!"
