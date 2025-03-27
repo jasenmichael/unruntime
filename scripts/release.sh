@@ -96,9 +96,9 @@ get_release_notes() {
   # Get commits between versions, including both subject line and hash
   local commits
   if git rev-parse "$prev_version" >/dev/null 2>&1; then
-    commits=$(git log --format='%s|%h' "$prev_version..HEAD" | sed 's/\$([^)]*)//g' | sed 's/"//g')
+    commits=$(git log --format='%s|%h' "$prev_version..HEAD" | sed "s/\$([^)]*)//g" | sed 's/"//g')
   else
-    commits=$(git log --format='%s|%h' | sed 's/\$([^)]*)//g' | sed 's/"//g')
+    commits=$(git log --format='%s|%h' | sed "s/\$([^)]*)//g" | sed 's/"//g')
   fi
 
   # Format the release notes
@@ -106,8 +106,8 @@ get_release_notes() {
     echo "## v${version}"
     echo
     # if not the first release, add compare link
-    if [ ! -f "$CHANGELOG_PATH" ] && [ -z "$(git tag -l)" ]; then
-      echo "[compare changes](${REPO_URL}/compare/v${prev_version:-0.0.0}...v${version})"
+    if [ -n "$(git tag -l)" ]; then
+      echo "[compare changes](${REPO_URL}/compare/v${prev_version}...v${version})"
       echo
     fi
     # set types and messages
@@ -126,6 +126,7 @@ get_release_notes() {
       ["feature"]="### 🚀 Enhancements"
       ["chore"]="### 🏡 Chore"
       ["fix"]="### 🐛 Bug Fixes"
+      ["fix!"]="### 🐛 Bug Fixes"
       ["refactor"]="### 🔄 Refactor"
       ["ci"]="### 🤖 CI"
       ["test"]="### 🧪 Tests"

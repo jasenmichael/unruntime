@@ -538,7 +538,7 @@ install_deno() {
 
 install_nypm() {
   echo "####### Installing nypm..."
-  npm install --global nypm
+  npm install --global nypm || pnpm add -g nypm
   PACKAGES_INSTALLED+=("nypm")
 }
 
