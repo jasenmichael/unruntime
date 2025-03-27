@@ -6,14 +6,15 @@ UNRUNTIME_VERSION=1.0.0
 UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
 
-NVM_INSTALL_URL=https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/nvm.sh
+# NVM_INSTALL_URL=https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/nvm.sh
+NVM_INSTALL_URL=https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh
 BUN_INSTALL_URL=https://bun.sh/install
 DENO_INSTALL_URL=https://deno.land/x/install/install.sh
 NODE_VERSION=${NODE_VERSION:---lts}
 
 # ===========================================================
 
-set -E # Make ERR trap inherited by shell functions
+set -E
 
 USAGE_TEXT=$(
   cat <<EOF
@@ -104,11 +105,12 @@ wgurl() {
   fi
 
   URL=$1
+  CURL_FLAGS=${2:-"-fsSL"} # Default to -fsSL if no flags provided
+
   if $curl_available; then
-    curl -fsSL "$URL"
+    curl $CURL_FLAGS "$URL"
   elif $wget_available; then
     wget -qO- "$URL"
-
   else
     echo "Failed to get $URL, curl or wget not found"
     exit 1
@@ -339,15 +341,40 @@ install_nvm_node() {
   fi
 
   if [ "$update_nvm" = true ]; then
-    wgurl "$NVM_INSTALL_URL" | bash
+    echo "Installing nvm from $NVM_INSTALL_URL..."
+    if ! wgurl "$NVM_INSTALL_URL" "-o-" | bash; then
+      echo "Failed to install nvm"
+      exit 1
+    fi
+
+    # Verify nvm installation
+    if [ ! -d "$NVM_DIR" ]; then
+      echo "NVM directory not created at $NVM_DIR"
+      exit 1
+    fi
+
+    if [ ! -f "$NVM_DIR/nvm.sh" ]; then
+      echo "nvm.sh not found in $NVM_DIR"
+      exit 1
+    fi
 
     # update nvm from git
     if command -v git &>/dev/null; then
-      (
-        cd "$NVM_DIR"
-        git fetch --tags origin
-        git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" "$(git rev-list --tags --max-count=1)")"
-      ) && \. "$NVM_DIR/nvm.sh"
+      echo "Updating nvm from git..."
+      if ! cd "$NVM_DIR"; then
+        echo "Failed to change directory to $NVM_DIR"
+        exit 1
+      fi
+
+      if ! git fetch --tags origin; then
+        echo "Failed to fetch nvm tags"
+        exit 1
+      fi
+
+      if ! git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" "$(git rev-list --tags --max-count=1)")"; then
+        echo "Failed to checkout latest nvm tag"
+        exit 1
+      fi
     else
       echo "git not found, skipping nvm update"
     fi
@@ -371,10 +398,15 @@ EOF
   fi
 
   echo "Installing/Updating node and npm..."
-  # echo "NODE_VERSION: $NODE_VERSION"
-
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
   # install/update node and npm
-  nvm install "$NODE_VERSION" >/dev/null 2>&1
+  if ! nvm install "$NODE_VERSION" >/dev/null 2>&1; then
+    # rerun to see nvm error
+    nvm install "$NODE_VERSION"
+    exit 1
+  fi
+
   nvm use "$NODE_VERSION" >/dev/null 2>&1
   PACKAGES_INSTALLED+=("node")
   PACKAGES_INSTALLED+=("npm")
