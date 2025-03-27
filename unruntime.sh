@@ -2,9 +2,10 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=1.0.2
+UNRUNTIME_VERSION=0.1.22
 UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
+UNRUNTIME_PATH="$UNRUNTIME_DIR/unruntime.sh"
 
 # NVM_INSTALL_URL=https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/nvm.sh
 NVM_INSTALL_URL=https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh
@@ -60,10 +61,13 @@ args_valid() {
   # If no args, return success
   [ $# -eq 0 ] && return 0
 
-  # If exactly one arg, it must be a valid argument
+  # If exactly one arg, it must be either a valid argument or package
   if [ $# -eq 1 ]; then
-    [[ ! " ${VALID_ARGUMENTS[*]} " =~ ${1} ]] && echo "Invalid argument: $1" && return 1
-    return 0
+    if [[ " ${VALID_ARGUMENTS[*]} " =~ ${1} ]] || [[ " ${VALID_PACKAGES[*]} " =~ ${1} ]]; then
+      return 0
+    fi
+    echo "Invalid argument or package: $1"
+    return 1
   fi
 
   # If multiple args, they must all be valid packages
@@ -84,7 +88,7 @@ fi
 
 # version
 if [ "$1" = "-V" ] || [ "$1" = "--version" ]; then
-  echo "unruntime v$UNRUNTIME_VERSION"
+  echo "$UNRUNTIME_VERSION"
   exit 0
 fi
 
@@ -271,6 +275,7 @@ trap on_exit EXIT
 
 # unruntime install/update functions
 install_unruntime() {
+  echo "Installing unruntime in \"$UNRUNTIME_DIR\""
   mkdir -p "$UNRUNTIME_DIR" >/dev/null 2>&1
   wgurl "$UNRUNTIME_URL" >"$UNRUNTIME_DIR/unruntime.sh"
 
@@ -305,14 +310,14 @@ update_unruntime() {
       cp "$UNRUNTIME_DIR/unruntime.sh.bak" "$UNRUNTIME_DIR/unruntime.sh"
     fi
   else
-    echo "Unruntime is up to date! v$UNRUNTIME_VERSION"
+    echo -e "Unruntime is up to date! v$UNRUNTIME_VERSION\n"
     return 0
   fi
 }
 
 # install functions
 install_nvm_node() {
-  echo "####### Installing/Updating nvm"
+  echo -e "\n####### Installing/Updating nvm"
 
   # install/update nvm
   local update_nvm=false
@@ -364,12 +369,12 @@ install_nvm_node() {
         exit 1
       fi
 
-      if ! git fetch --tags origin; then
+      if ! git fetch --tags origin >/dev/null 2>&1; then
         echo "Failed to fetch nvm tags"
         exit 1
       fi
 
-      if ! git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" "$(git rev-list --tags --max-count=1)")"; then
+      if ! git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" "$(git rev-list --tags --max-count=1)")" >/dev/null 2>&1; then
         echo "Failed to checkout latest nvm tag"
         exit 1
       fi
@@ -395,7 +400,7 @@ EOF
     update_block "nvm" "$rc_block"
   fi
 
-  echo "####### Installing/Updating node, and npm..."
+  echo -e "\n####### Installing/Updating node, and npm..."
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
   # install/update node and npm
@@ -538,13 +543,17 @@ install_deno() {
 
 install_nypm() {
   echo "####### Installing nypm..."
-  npm install --global nypm || pnpm add -g nypm
+  if ! pnpm add -g nypm || npm install --global nypm; then
+    echo "Failed to install nypm"
+    return 1
+  fi
   PACKAGES_INSTALLED+=("nypm")
 }
 
 # main
 main() {
   # check if curl or wget is available
+  echo "### Installing/updating unruntime"
   if ! wgurl --check; then
     echo "curl or wget not found, please install one of them"
     exit 1
@@ -555,7 +564,7 @@ main() {
     echo "Unruntime installed, checking for updates..."
     update_unruntime "$@"
   else
-    echo "####### Installing unruntime..."
+    echo "Unruntime not installed, installing..."
     install_unruntime
   fi
 
@@ -564,6 +573,12 @@ main() {
   install_nvm_node_exit_code=$?
 
   if [ "$1" = "-n" ] || [ "$1" = "--none" ]; then
+    echo "Installed/updated"
+    echo "  unruntime: $($UNRUNTIME_PATH -V)"
+    echo "  nvm: $(nvm -v)"
+    echo "  node: $(node -v)"
+    echo "  npm: $(npm -v)"
+    echo ""
     exit $install_nvm_node_exit_code
   fi
 
