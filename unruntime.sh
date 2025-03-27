@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=1.0.0
+UNRUNTIME_VERSION=1.0.1
 UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
 
@@ -140,13 +140,11 @@ unruntime_is_installed() {
 
 unruntime_is_up_to_date() {
   get_unruntime_latest_version() {
-    wgurl "$UNRUNTIME_URL" | grep "^UNRUNTIME_VERSION=" | cut -d'=' -f2 | tr -d '"' | sed 's/unruntime v//' | tr -d '[:space:]'
+    wgurl "$UNRUNTIME_URL" | grep "^UNRUNTIME_VERSION=" | cut -d'=' -f2 | tr -d '"'
   }
   UNRUNTIME_LATEST_VERSION=$(get_unruntime_latest_version)
 
   ! unruntime_is_installed && return 1
-
-  UNRUNTIME_VERSION=$("$UNRUNTIME_DIR/unruntime.sh" --version | sed 's/unruntime v//' | tr -d '[:space:]')
 
   if [ -n "$UNRUNTIME_LATEST_VERSION" ] && [ "$(printf '%s\n' "$UNRUNTIME_VERSION" "$UNRUNTIME_LATEST_VERSION" | sort -V | tail -n1)" = "$UNRUNTIME_VERSION" ]; then
     return 0
@@ -314,7 +312,7 @@ update_unruntime() {
 
 # install functions
 install_nvm_node() {
-  echo "####### Installing/Updating nvm, node, and npm..."
+  echo "####### Installing/Updating nvm"
 
   # install/update nvm
   local update_nvm=false
@@ -397,7 +395,7 @@ EOF
     update_block "nvm" "$rc_block"
   fi
 
-  echo "Installing/Updating node and npm..."
+  echo "####### Installing/Updating node, and npm..."
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
   # install/update node and npm
@@ -427,9 +425,16 @@ install_pnpm() {
   echo "####### Installing pnpm..."
 
   npm uninstall -g pnpm >/dev/null 2>&1
-  corepack enable
-  corepack enable pnpm
-  corepack prepare pnpm@latest --activate
+  npm install --global corepack@latest
+  if ! command -v pnpm &>/dev/null; then
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    case ":$PATH:" in
+    *":$PNPM_HOME:"*) ;;
+    *) export PATH="\$PNPM_HOME:\$PATH" ;;
+    esac
+
+    pnpm self-update >/dev/null 2>&1
+  fi
 
   local rc_block
   rc_block=$(
@@ -456,8 +461,8 @@ install_yarn() {
   echo "####### Installing yarn..."
 
   npm uninstall -g yarn >/dev/null 2>&1
+  npm install -g corepack
   corepack enable
-  corepack prepare yarn@stable --activate
 
   if ! command -v yarn &>/dev/null; then
     echo "Failed to install yarn"
@@ -521,6 +526,8 @@ install_deno() {
   rc_block=". \"\$HOME/.deno/env\""
   update_block "deno" "$rc_block"
 
+  # load deno env
+  . "$HOME/.deno/env"
   if ! command -v deno &>/dev/null; then
     echo "Failed to install deno"
     exit 1

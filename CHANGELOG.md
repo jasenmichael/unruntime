@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.1
+
+### 📖 Documentation
+- adds seo meta ([14fd26e](https://github.com/jasenmichael/unruntime/commit/14fd26e))
+- fix block padding ([b47fc3f](https://github.com/jasenmichael/unruntime/commit/b47fc3f))
+
+### 🐛 Bug Fixes
+- nvm install ([ba31896](https://github.com/jasenmichael/unruntime/commit/ba31896))
+
 ## v1.0.0
 
 ### 🔄 Refactor
