@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=1.0.1
+UNRUNTIME_VERSION=1.1.0
 UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
 
