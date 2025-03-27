@@ -1,30 +1,5 @@
 # Changelog
 
-## v1.1.0
-
-[compare changes](https://github.com/jasenmichael/unruntime/compare/v1.0.1...v1.1.0)
-
-### 📖 Documentation
-- adds seo meta ([14fd26e](https://github.com/jasenmichael/unruntime/commit/14fd26e))
-- fix block padding ([b47fc3f](https://github.com/jasenmichael/unruntime/commit/b47fc3f))
-
-### 🐛 Bug Fixes
-- nvm install ([ba31896](https://github.com/jasenmichael/unruntime/commit/ba31896))
-
-### 📦 Release v1.0.1
-- Release v1.0.1 ([c8494b1](https://github.com/jasenmichael/unruntime/commit/c8494b1))
-
-## v1.0.1
-
-[compare changes](https://github.com/jasenmichael/unruntime/compare/v1.0.0...v1.0.1)
-
-### 📖 Documentation
-- adds seo meta ([14fd26e](https://github.com/jasenmichael/unruntime/commit/14fd26e))
-- fix block padding ([b47fc3f](https://github.com/jasenmichael/unruntime/commit/b47fc3f))
-
-### 🐛 Bug Fixes
-- nvm install ([ba31896](https://github.com/jasenmichael/unruntime/commit/ba31896))
-
 ## v1.0.0
 
 ### 🔄 Refactor
