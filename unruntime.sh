@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=0.1.23
+UNRUNTIME_VERSION=0.1.24
 UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
 UNRUNTIME_DIR="$HOME/.unruntime"
 UNRUNTIME_PATH="$UNRUNTIME_DIR/unruntime.sh"
@@ -290,7 +290,7 @@ EOF
   update_block "unrun" "$rc_block"
   UNRUNTIME_DIR="$HOME/.unruntime"
   chmod +x "$UNRUNTIME_DIR/unruntime.sh"
-  echo -e "Unruntime installed! v$UNRUNTIME_VERSION\n"
+  echo -e "Unruntime installed! v$UNRUNTIME_VERSION"
 }
 
 update_unruntime() {
@@ -300,7 +300,7 @@ update_unruntime() {
     install_unruntime
     # if install was successful, remove the backup
     if unruntime_is_installed; then
-      echo "Unruntime updated!"
+      echo "Unruntime updated, restarting untuntime..."
       rm "$UNRUNTIME_DIR/unruntime.sh.bak"
       # Execute the new version with all arguments
       # shellcheck disable=SC2086,SC2068
