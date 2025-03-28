@@ -291,9 +291,9 @@ install_unruntime() {
   local rc_block
   rc_block=$(
     cat <<EOF
-UNRUNTIME_DIR="$HOME/.unruntime"
-alias unrun="$UNRUNTIME_DIR/unruntime.sh"
-alias unruntime="$UNRUNTIME_DIR/unruntime.sh"
+UNRUNTIME_DIR="\$HOME/.unruntime"
+alias unruntime="\$UNRUNTIME_DIR/unruntime.sh"
+alias unrun="\$UNRUNTIME_DIR/unruntime.sh"
 EOF
   )
   update_block "unrun" "$rc_block"
@@ -493,10 +493,12 @@ install_bun() {
   if [ -z "$DRY_RUN" ] && [ "$DRY_RUN" != "true" ]; then
     wgurl "$BUN_INSTALL_URL" | bash
 
-    # remove bun completions line, and the line after it
+    # remove bun line, and two lines after it
+    sed -i '/# bun/{N;N;d}' "$HOME/.zshrc"
+    sed -i '/# bun/{N;N;d}' "$HOME/.bashrc"
+    sed -i '/# bun completions/{N;N;d}' "$HOME/.zshrc"
+    sed -i '/# bun completions/{N;N;d}' "$HOME/.bashrc"
     # this is re-added in the rc_block below
-    sed -i '/# bun completions/{N;d}' "$HOME/.zshrc"
-    sed -i '/# bun completions/{N;d}' "$HOME/.bashrc"
 
   else
     echo "Dry run, skipping bun installation"
