@@ -23,24 +23,23 @@ A web installer for JavaScript runtimes and package managers. This tool helps yo
 Quick install:
 ```bash
 
-curl -fsSL https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh | bash
+curl -fsSL https://jasenmichael.github.io/unruntime/ | bash
 ```
 
 Manual install:
 
 ```bash
 
-curl -fsSL https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh | bash -o ~/.unruntime/unruntime.sh
+curl -fsSL https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh -o ~/.unruntime/unruntime.sh
 chmod +x ~/.unruntime/unruntime.sh
 ~/.unruntime/unruntime.sh
-
 ```
 
 After installation, `unrun` and `unruntime` commands will be available locally.
 
 ## What Gets Installed
 
-- **[unruntime](https://gist.github.com/jasenmichael/f6214915c90b3e142ed165a6b9ac3f2f)**: Installed to `~/.unruntime` with local commands `unrun` and `unruntime`
+- **[unruntime](https://github.com/jasenmichael/unruntime)**: Installed to `~/.unruntime` with local commands `unrun` and `unruntime`
 - **[nvm](https://github.com/nvm-sh/nvm)**: Node Version Manager (with update prompts)
 - **[node](https://nodejs.org)**: Latest LTS version
 - **[npm](https://docs.npmjs.com/cli)**: Node Package Manager
