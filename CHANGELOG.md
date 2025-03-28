@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.1
+
+[compare changes](https://github.com/jasenmichael/unruntime/compare/v0.2.0...v0.2.1)
+
+### 📖 Documentation
+- update README for ([9ebb828](https://github.com/jasenmichael/unruntime/commit/
+
+### 🚀 Enhancements
+- shellify the docs page ([07d598e](https://github.com/jasenmichael/unruntime/commit/07d598e))
+
+### 🏡 Chore
+- update bun rc block ([48b2504](https://github.com/jasenmichael/unruntime/commit/48b2504))
+- urls to latest release ([7e48d1c](https://github.com/jasenmichael/unruntime/commit/7e48d1c))
+
+### 💦 Release v0.2.0
+- Release v0.2.0 ([27bed39](https://github.com/jasenmichael/unruntime/commit/27bed39))
+
 ## v0.2.0
 
 [compare changes](https://github.com/jasenmichael/unruntime/compare/v0.1.25...v0.2.0)

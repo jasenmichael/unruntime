@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=0.2.0
+UNRUNTIME_VERSION=0.2.1
 UNRUNTIME_BRANCH=${UNRUNTIME_BRANCH:-latest}
 UNRUNTIME_URL=${UNRUNTIME_URL:-https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh}
 
