@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.0
+
+[compare changes](https://github.com/jasenmichael/unruntime/compare/v0.1.25...v0.2.0)
+
+### 🔄 Refactor
+- docs and scripts ([215343d](https://github.com/jasenmichael/unruntime/commit/215343d))
+- release script ([1bf46c4](https://github.com/jasenmichael/unruntime/commit/1bf46c4))
+
+### 🚀 Enhancements
+- add UNRUNTIME_BRANCH and UNRUNTIME_URL env vars ([26caad3](https://github.com/jasenmichael/unruntime/commit/26caad3))
+
 ## v0.1.25
 
 ### 🔄 Refactor
