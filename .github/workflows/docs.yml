@@ -21,8 +21,7 @@ jobs:
 
       - name: Install pandoc
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl pandoc
+          sudo apt-get install -y pandoc
 
       - name: Build documentation
         run: |
