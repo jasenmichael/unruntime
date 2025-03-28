@@ -23,14 +23,14 @@ A web installer for JavaScript runtimes and package managers. This tool helps yo
 Quick install:
 ```bash
 
-curl -fsSL https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh | bash
+curl -fsSL https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh | bash
 ```
 
 Manual install:
 
 ```bash
 
-curl -fsSL https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh -o ~/.unruntime/unruntime.sh
+curl -fsSL https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh | bash -o ~/.unruntime/unruntime.sh
 chmod +x ~/.unruntime/unruntime.sh
 ~/.unruntime/unruntime.sh
 
