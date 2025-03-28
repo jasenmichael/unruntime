@@ -2,8 +2,17 @@
 # shellcheck disable=SC1090,SC109,SC2001,SC1091,SC2086,SC2068
 
 # settings
-UNRUNTIME_VERSION=0.1.25
-UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/raw/main/unruntime.sh
+UNRUNTIME_VERSION=0.1.26
+UNRUNTIME_BRANCH=${UNRUNTIME_BRANCH:-latest}
+UNRUNTIME_URL=${UNRUNTIME_URL:-https://github.com/jasenmichael/unruntime/releases/latest/download/unruntime.sh}
+
+# if branch starts with v
+if [[ "$UNRUNTIME_BRANCH" =~ ^v.* ]]; then
+  UNRUNTIME_URL=https://github.com/jasenmichael/unruntime/releases/download/${UNRUNTIME_VERSION}/unruntime.sh
+elif [ -n "$UNRUNTIME_BRANCH" ] && [[ "$UNRUNTIME_BRANCH" != "latest" ]]; then
+  UNRUNTIME_URL=https://raw.githubusercontent.com/jasenmichael/unruntime/${UNRUNTIME_BRANCH}/unruntime.sh
+fi
+
 UNRUNTIME_DIR="$HOME/.unruntime"
 UNRUNTIME_PATH="$UNRUNTIME_DIR/unruntime.sh"
 
@@ -132,7 +141,6 @@ fi
 get_nvm_latest_version() {
   # wgurl https://latest.nvm.sh | grep -i location | tail -n1 | sed 's/.*\/v//' | tr -d '[:space:]'
   wgurl https://raw.githubusercontent.com/nvm-sh/nvm/master/package.json | grep '"version":' | cut -d'"' -f4
-
 }
 
 # helper functions
@@ -234,9 +242,9 @@ print_report() {
       # v=$(echo "$v" | sed 's/deno //' | sed 's/^v//' | sed 's/ (.*//')
       v=$(echo "$v" | sed 's/deno //' | sed 's/^v//' | sed 's/ //')
       if [ "$package" = "corepack" ] || [ "$package" = "unruntime" ]; then
-        echo -e "  $package:\t\t $v"
+        echo -e "  $package:\t $v"
       else
-        echo -e "  $package:\t\t\t $v"
+        echo -e "  $package:\t\t $v"
       fi
     done
     echo ""
@@ -276,6 +284,8 @@ trap on_exit EXIT
 install_unruntime() {
   echo "Installing unruntime in \"$UNRUNTIME_DIR\""
   mkdir -p "$UNRUNTIME_DIR" >/dev/null 2>&1
+  echo "fetching: $UNRUNTIME_URL"
+
   wgurl "$UNRUNTIME_URL" >"$UNRUNTIME_DIR/unruntime.sh"
 
   local rc_block
