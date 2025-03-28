@@ -1,3 +1,4 @@
 .bin
-docs
+docs/build
+build
 .cursorignore

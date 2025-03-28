@@ -7,6 +7,7 @@ on:
       - "src/**"
       - "README.md"
       - "scripts/docs.sh"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 permissions:
@@ -25,15 +26,15 @@ jobs:
 
       - name: Build documentation
         run: |
-          ./scripts/docs.sh
+          ./scripts/docs.sh build
 
       - name: Verify build output
         run: |
-          if [ ! -d "./docs" ]; then
+          if [ ! -d "./docs/build" ]; then
             echo "Error: docs directory not found after build"
             exit 1
           fi
-          if [ ! -f "./docs/index.html" ]; then
+          if [ ! -f "./docs/build/index.html" ]; then
             echo "Error: index.html not found in docs directory"
             exit 1
           fi
@@ -42,5 +43,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          publish_dir: ./docs/build
+          publish_branch: docs
           commit_message: "docs: update documentation"

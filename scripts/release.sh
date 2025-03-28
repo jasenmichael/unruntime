@@ -1,13 +1,13 @@
 #! /bin/bash
+# shellcheck disable=SC1091
 
-# set -e
+# sources:
+#     REPO_URL,
+#     ROOT_DIR, RELEASE_SCRIPT,
+. "$(dirname "$0")/.vars"
 
-# backup the release script
-SCRIPT_PATH="$0"
-ROOT_DIR="$(dirname "$(dirname "$0")")"
 UNRUNTIME_PATH="$ROOT_DIR/unruntime.sh"
 CHANGELOG_PATH="$ROOT_DIR/CHANGELOG.md"
-REPO_URL="https://github.com/jasenmichael/unruntime"
 
 # Error handling and cleanup functions
 cleanup() {
@@ -28,7 +28,7 @@ revert_changes() {
 
   # Clean up any untracked files (like CHANGELOG.md if it was just created)
   git clean -f
-  mv ".git/.bak/release.sh" "$SCRIPT_PATH" >/dev/null 2>&1
+  mv ".git/.bak/release.sh" "$RELEASE_SCRIPT" >/dev/null 2>&1
 
   echo "All changes have been reverted to state before release."
 }
@@ -124,7 +124,6 @@ get_release_notes() {
       ["feature"]="### 🚀 Enhancements"
       ["chore"]="### 🏡 Chore"
       ["fix"]="### 🐛 Bug Fixes"
-      ["fix!"]="### 🐛 Bug Fixes"
       ["refactor"]="### 🔄 Refactor"
       ["ci"]="### 🤖 CI"
       ["test"]="### 🧪 Tests"
@@ -169,8 +168,9 @@ ensure_pulled_latest_changes() {
 }
 
 ensure_working_directory_is_clean() {
+  # backup the release script, so it can be resored if the release is canceled (revert_changes is run)
   mkdir -p .git/.bak
-  cp "$SCRIPT_PATH" ".git/.bak/release.sh"
+  cp "$RELEASE_SCRIPT" ".git/.bak/release.sh"
 
   # check if working directory is clean
   if git status --porcelain | grep -v '^ M scripts/release.sh$' | grep -q .; then
@@ -180,7 +180,7 @@ ensure_working_directory_is_clean() {
 }
 
 ensure_code_formatted() {
-  if ! "$ROOT_DIR/scripts/fmt.sh" "$ROOT_DIR" >/dev/null 2>&1; then
+  if ! "$FORMAT_SCRIPT" "$ROOT_DIR" >/dev/null 2>&1; then
     echo "Failed to format code"
     exit 1
   else
@@ -312,7 +312,7 @@ push_changes() {
 
 # Main execution
 trap cleanup INT TERM
-trap 'mv ".git/.bak/release.sh" "$SCRIPT_PATH" >/dev/null 2>&1' EXIT
+trap 'mv ".git/.bak/release.sh" "$RELEASE_SCRIPT" >/dev/null 2>&1' EXIT
 
 ensure_git_installed
 ensure_on_main_branch
