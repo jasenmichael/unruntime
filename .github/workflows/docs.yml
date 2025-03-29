@@ -44,4 +44,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build
           publish_branch: docs
+          cname: unruntime.jasenmichael.com
           commit_message: "docs: update documentation"
