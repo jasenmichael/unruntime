@@ -530,7 +530,7 @@ install_deno() {
   # https://dl.deno.land/release-latest.txt
   echo "####### Installing deno..."
   if [ -z "$DRY_RUN" ] && [ "$DRY_RUN" != "true" ]; then
-    wgurl "$DENO_INSTALL_URL" | sh
+    wgurl "$DENO_INSTALL_URL" | sh -s -- -y
 
   else
     echo "Dry run, skipping deno installation"
