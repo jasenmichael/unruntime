@@ -310,7 +310,7 @@ update_unruntime() {
     install_unruntime
     # if install was successful, remove the backup
     if unruntime_is_installed; then
-      echo "Unruntime updated, restarting untuntime..."
+      echo -e "Unruntime updated, restarting untuntime...\n"
       rm "$UNRUNTIME_DIR/unruntime.sh.bak"
       # Execute the new version with all arguments
       # shellcheck disable=SC2086,SC2068
@@ -565,7 +565,7 @@ install_nypm() {
 
 # main
 # check if curl or wget is available
-echo "### Installing/updating unruntime"
+echo "####### Installing/updating unruntime"
 if ! wgurl --check; then
   echo "curl or wget not found, please install one of them"
   exit 1
