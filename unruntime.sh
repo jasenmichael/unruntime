@@ -320,7 +320,7 @@ update_unruntime() {
       cp "$UNRUNTIME_DIR/unruntime.sh.bak" "$UNRUNTIME_DIR/unruntime.sh"
     fi
   else
-    echo -e "Unruntime is up to date! v$UNRUNTIME_VERSION\n"
+    echo -e "Unruntime is up to date! v$UNRUNTIME_VERSION"
     PACKAGES_INSTALLED+=("unruntime")
     return 0
   fi
