@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.2.2
+
+[compare changes](https://github.com/jasenmichael/unruntime/compare/v0.2.1...v0.2.2)
+
+### 💦 Release v0.1.23
+- Release v0.1.23 ([8615b79](https://github.com/jasenmichael/unruntime/commit/8615b79))
+
+### cli
+- add CNAME ([b561f01](https://github.com/jasenmichael/unruntime/commit/b561f01))
+
+### 📖 Documentation
+- update domain ([ab3f537](https://github.com/jasenmichael/unruntime/commit/ab3f537))
+- use custom domain ([ffed8eb](https://github.com/jasenmichael/unruntime/commit/ffed8eb))
+- remove shellify, improve styles ([546b77a](https://github.com/jasenmichael/unruntime/commit/546b77a))
+- update web install url ([35dd0a6](https://github.com/jasenmichael/unruntime/commit/35dd0a6))
+- better banner image ([0c0e458](https://github.com/jasenmichael/unruntime/commit/0c0e458))
+
+### 🏡 Chore
+- deno_install adds -y flag to skip prompts ([a385c32](https://github.com/jasenmichael/unruntime/commit/a385c32))
+
+### 🤖 CI
+- improve build time ([7461aa9](https://github.com/jasenmichael/unruntime/commit/7461aa9))
+
+### 🐛 Bug Fixes
+- always update nvm rc block ([e285ded](https://github.com/jasenmichael/unruntime/commit/e285ded))
+- remove bun completions ([2920799](https://github.com/jasenmichael/unruntime/commit/2920799))
+- remove extra line ([38d1cda](https://github.com/jasenmichael/unruntime/commit/38d1cda))
+
 ## v0.2.1
 
 [compare changes](https://github.com/jasenmichael/unruntime/compare/v0.2.0...v0.2.1)
