@@ -29,6 +29,7 @@ build_docs() {
     --metadata description="$DOCS_DESCRIPTION" \
     --metadata author="$DOCS_AUTHOR" \
     --metadata keywords="$DOCS_KEYWORDS" \
+    --metadata domain="$DOCS_DOMAIN" \
     --template="$DOCS_TEMPLATE" \
     --highlight-style=tango \
     -o "$DOCS_BUILD_OUTPUT" || { echo "Build failed" && exit 1; }
