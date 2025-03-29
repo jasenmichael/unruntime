@@ -36,8 +36,6 @@ build_docs() {
   # copy public assets to build dir
   cp -r "$DOCS_PUBLIC_DIR"/* "$DOCS_BUILD_DIR/" || { echo "Copy failed" && exit 1; }
 
-  shellify_html
-
   echo "Build successful"
   echo "  - $DOCS_BUILD_OUTPUT"
 }
@@ -76,32 +74,6 @@ dev() {
     --ignore "$DOCS_BUILD_DIR" \
     --ext md,sh,html \
     --exec "$DOCS_SCRIPT build"
-}
-
-shellify_html() {
-  #!/bin/bash
-
-  # Make HTML one line and split at </body>
-  tr -d '\r' <"$DOCS_BUILD_OUTPUT" | tr '\n' ' ' | sed 's/  */ /g' >"$DOCS_BUILD_OUTPUT.tmp" && mv "$DOCS_BUILD_OUTPUT.tmp" "$DOCS_BUILD_OUTPUT"
-
-  # split_at_body
-  sed -i 's/\(<\/body>\)/\n\1/g' "$DOCS_BUILD_OUTPUT"
-
-  # append opening div tag to END the fist line, I SAID APPEND TO END OF LINE
-  sed -i '1s/$/<div style="display: none; visibility: hidden;">/' "$DOCS_BUILD_OUTPUT"
-
-  # prepend closing body tag with closing div tag
-  sed -i 's/\(<\/body>\)/<\/div><\/body>/g' "$DOCS_BUILD_OUTPUT"
-
-  # comment markers
-  sed -i 's/^/# /' "$DOCS_BUILD_OUTPUT"
-  # this is not really needed
-  # sed -i '1i #!/usr/bin/env bash' "$DOCS_BUILD_OUTPUT"
-
-  code=$(cat "$DOCS_WEB_INSTALL")
-
-  # # replace last line with $code\n$last_line
-  awk -v code="$code" 'NR==1{print} NR==2{print code "\n" $0}' "$DOCS_BUILD_OUTPUT" >"$DOCS_BUILD_OUTPUT.tmp" && mv "$DOCS_BUILD_OUTPUT.tmp" "$DOCS_BUILD_OUTPUT"
 }
 
 if [ "$1" = "build" ]; then
