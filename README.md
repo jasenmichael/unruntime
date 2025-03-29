@@ -23,7 +23,7 @@ A web installer for JavaScript runtimes and package managers. This tool helps yo
 Quick install:
 ```bash
 
-curl -fsSL https://jasenmichael.github.io/unruntime/install.sh | bash
+curl -fsSL https://unruntime.jasenmichael.com/install.sh | bash
 ```
 
 Manual install:
