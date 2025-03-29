@@ -496,8 +496,8 @@ install_bun() {
     # remove bun line, and two lines after it
     sed -i '/# bun/{N;N;d}' "$HOME/.zshrc"
     sed -i '/# bun/{N;N;d}' "$HOME/.bashrc"
-    sed -i '/# bun completions/{N;N;d}' "$HOME/.zshrc"
-    sed -i '/# bun completions/{N;N;d}' "$HOME/.bashrc"
+    sed -i '/# bun completions/{N;d}' "$HOME/.zshrc"
+    sed -i '/# bun completions/{N;d}' "$HOME/.bashrc"
     # this is re-added in the rc_block below
 
   else
